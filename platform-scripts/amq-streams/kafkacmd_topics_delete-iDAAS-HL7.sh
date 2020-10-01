@@ -8,6 +8,8 @@ bin/kafka-topics.sh --delete --topic opsmgmt_platformtransactions &
 ## Facility: MCTN
 ## Application: MMS
 bin/kafka-topics.sh --delete --topic mctn_mms_adt &
+# ORU
+bin/kafka-topics.sh --delete --topic mctn_oru &
 
 ## HL7
 ## Facility By Application by Message Trigger

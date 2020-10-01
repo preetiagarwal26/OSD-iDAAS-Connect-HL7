@@ -120,7 +120,7 @@ public class CamelConfiguration extends RouteBuilder {
      *
      */
 	  // ADT
-	  from("file:src/data-in/hl7v2/ADT?delete=true?noop=true"))
+	  from("file:src/data-in/hl7v2/ADT?delete=true?noop=true")
           .routeId("hl7Admissions")
           .convertBodyTo(String.class)
           // set Auditing Properties
@@ -171,6 +171,60 @@ public class CamelConfiguration extends RouteBuilder {
             .to("kafka:localhost:9092?topic=mms_adt&brokers=localhost:9092")
             //.wireTap("direct:auditing")
     ;
+    
+	 // ORU
+	  from("file:src/data-in/hl7v2/ADT/ORU?delete=true?noop=true")
+      .routeId("hl7ORU")
+      .convertBodyTo(String.class)
+      // set Auditing Properties
+      .setProperty("processingtype").constant("data")
+      .setProperty("appname").constant("iDAAS-ConnectClinical-IndustryStd")
+      .setProperty("industrystd").constant("HL7")
+      .setProperty("messagetrigger").constant("ORU")
+      .setProperty("componentname").simple("${routeId}")
+      .setProperty("processname").constant("Input")
+      .setProperty("camelID").simple("${camelId}")
+      .setProperty("exchangeID").simple("${exchangeId}")
+      .setProperty("internalMsgID").simple("${id}")
+      .setProperty("bodyData").simple("${body}")
+      .setProperty("auditdetails").constant("ORU message received")
+      // iDAAS DataHub Processing
+      .wireTap("direct:auditing")
+      // Send to Topic
+      .convertBodyTo(String.class).to(getKafkaTopicUri("mctn_oru"))
+      //Response to HL7 Message Sent Built by platform
+      .transform(HL7.ack())
+      // This would enable persistence of the ACK
+      .convertBodyTo(String.class)
+      .setProperty("bodyData").simple("${body}")
+      .setProperty("processingtype").constant("data")
+      .setProperty("appname").constant("iDAAS-ConnectClinical-IndustryStd")
+      .setProperty("industrystd").constant("HL7")
+      .setProperty("messagetrigger").constant("ORU")
+      .setProperty("componentname").simple("${routeId}")
+      .setProperty("camelID").simple("${camelId}")
+      .setProperty("exchangeID").simple("${exchangeId}")
+      .setProperty("internalMsgID").simple("${id}")
+      .setProperty("processname").constant("Input")
+      .setProperty("auditdetails").constant("ACK Processed")
+      // iDAAS DataHub Processing
+      .wireTap("direct:auditing")
+	;
+	
+	/*
+	 *    HL7v2 ORU
+	 */
+	from("kafka:localhost:9092?topic= mctn_oru&brokers=localhost:9092")
+	        .routeId("ADT-MiddleTier-ORU")
+	        // Auditing
+	        .setProperty("processingtype").constant("data")
+	        .setProperty("appname").constant("iDAAS-ConnectClinical-IndustryStd")
+	        .wireTap("direct:auditing")
+	        // Enterprise Message By Sending App By Type
+	        .to("kafka:localhost:9092?topic=mms_adt&brokers=localhost:9092")
+	        //.wireTap("direct:auditing")
+	;
+
   }
 
 
